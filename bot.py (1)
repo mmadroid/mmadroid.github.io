@@ -1,0 +1,37 @@
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils import executor
+
+# --- Конфигурация ---
+API_TOKEN = "8787759522:AAEucC1BJaeRCRucOuKlmwxVxGQlwvFj5AE"
+WEB_APP_URL = "https://mmadroid.github.io/"  # Замените на ваш URL
+
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+
+@dp.message_handler(commands=['start'])
+async def start_command(message: types.Message):
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
+            text="🎲 Играть в NFT Монополию",
+            web_app=WebAppInfo(url=WEB_APP_URL)
+        )
+    )
+    await message.answer(
+        "Добро пожаловать в NFT Монополию!\n"
+        "Покупайте недвижимость, получайте уникальные NFT-подарки и становитесь миллионером!",
+        reply_markup=keyboard
+    )
+
+# Опционально: обработка данных, отправленных из игры
+@dp.message_handler(content_types=types.ContentType.WEB_APP_DATA)
+async def handle_web_app_data(message: types.Message):
+    data = message.web_app_data.data
+    logging.info(f"Получены данные: {data}")
+    await message.answer(f"Игровое событие: {data}")
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
