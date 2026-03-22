@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Монополия</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            margin: 0;
+            padding: 10px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 2px;
+            background: #ddd;
+            border: 2px solid #aaa;
+            margin-bottom: 20px;
+        }
+        .cell {
+            background: #fff;
+            text-align: center;
+            font-size: 10px;
+            padding: 8px 2px;
+            position: relative;
+            cursor: pointer;
+        }
+        .cell.property { background: #f0f0f0; }
+        .player-token {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: red;
+            color: white;
+            font-size: 10px;
+            line-height: 20px;
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .info {
+            background: var(--tg-theme-secondary-bg-color);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .players {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .player-card {
+            background: var(--tg-theme-bg-color);
+            border: 1px solid gray;
+            border-radius: 8px;
+            padding: 5px;
+            min-width: 100px;
+        }
+        .current-turn {
+            background: gold;
+            color: black;
+        }
+        @media (max-width: 600px) {
+            .cell { font-size: 8px; padding: 4px 1px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="board" class="board"></div>
+    <div class="controls">
+        <button id="rollBtn">🎲 Бросить кубик</button>
+        <button id="endTurnBtn">➡️ Завершить ход</button>
+    </div>
+    <div id="info" class="info"></div>
+    <div id="players" class="players"></div>
+
+    <script>
+        let gameState = null;
+        let myId = null;
+        let gameId = null;
+
+        // Получаем game_id из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        gameId = urlParams.get('game_id');
+
+        // Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Функция для запросов к серверу
+        async function apiCall(endpoint, data) {
+            const response = await fetch(`https://your-server.com/${endpoint}`, { // замените на ваш сервер
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        }
+
+        // Получить текущее состояние
+        async function fetchState() {
+            const res = await apiCall('state', { game_id: gameId, player_id: myId });
+            if (res.error) {
+                console.error(res.error);
+                return;
+            }
+            gameState = res;
+            render();
+        }
+
+        // Отправить действие
+        async function sendAction(action, extra = {}) {
+            const res = await apiCall('action', { game_id: gameId, player_id: myId, action, ...extra });
+            if (res.error) {
+                alert(res.error);
+                return;
+            }
+            if (res.state) gameState = res.state;
+            render();
+            if (res.message) alert(res.message);
+        }
+
+        // Отрисовка поля
+        function render() {
+            if (!gameState) return;
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            const cells = gameState.cells;
+            // Упрощённая сетка 11x11
+            for (let i = 0; i < 40; i++) {
+                const cell = cells[i];
+                const cellDiv = document.createElement('div');
+                cellDiv.className = 'cell';
+                if (cell.type === 'property') cellDiv.classList.add('property');
+                cellDiv.style.backgroundColor = cell.color ? group_colors[cell.color] : '#eee';
+                cellDiv.innerHTML = `<b>${cell.name}</b><br>${cell.price ? cell.price+'💰' : ''}`;
+                // Добавляем фишки игроков
+                for (let pid in gameState.players) {
+                    if (gameState.players[pid].position === i) {
+                        const token = document.createElement('div');
+                        token.className = 'player-token';
+                        token.innerText = gameState.players[pid].name[0];
+                        token.style.backgroundColor = pid === myId ? 'green' : 'red';
+                        cellDiv.appendChild(token);
+                    }
+                }
+                // Если клетка не куплена и тип property/railroad/utility, делаем кликабельной
+                if ((cell.type === 'property' || cell.type === 'railroad' || cell.type === 'utility') && !cell.owner && cell.price > 0) {
+                    cellDiv.style.cursor = 'pointer';
+                    cellDiv.onclick = () => sendAction('buy', { cell: i });
+                }
+                boardDiv.appendChild(cellDiv);
+            }
+
+            // Информация о текущем игроке
+            const currentPlayer = gameState.players[gameState.current_player];
+            document.getElementById('info').innerHTML = `
+                <b>Текущий ход:</b> ${currentPlayer.name}<br>
+                <b>Ваши деньги:</b> ${gameState.players[myId].money}💰
+            `;
+
+            // Список игроков
+            const playersDiv = document.getElementById('players');
+            playersDiv.innerHTML = '';
+            for (let pid in gameState.players) {
+                const p = gameState.players[pid];
+                const card = document.createElement('div');
+                card.className = `player-card ${pid === gameState.current_player ? 'current-turn' : ''}`;
+                card.innerHTML = `
+                    <b>${p.name}</b><br>
+                    💰 ${p.money}<br>
+                    🏁 ${cells[p.position].name}<br>
+                    ${p.in_jail ? '🚔 В тюрьме' : ''}
+                `;
+                playersDiv.appendChild(card);
+            }
+        }
+
+        // Инициализация
+        async function init() {
+            // Получаем user_id из Telegram
+            myId = tg.initDataUnsafe?.user?.id;
+            if (!myId) {
+                alert("Не удалось получить ID пользователя");
+                return;
+            }
+            await fetchState();
+            document.getElementById('rollBtn').onclick = () => sendAction('roll');
+            document.getElementById('endTurnBtn').onclick = () => sendAction('end_turn');
+            // Периодическое обновление (каждые 3 секунды)
+            setInterval(fetchState, 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
