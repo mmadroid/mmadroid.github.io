@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Монополия | Веб-версия</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a472a 0%, #0e2a1a 100%);
+            font-family: 'Segoe UI', 'Poppins', 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* основной контейнер */
+        .game-container {
+            background: #2c2c2c;
+            border-radius: 48px;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1);
+            padding: 20px;
+        }
+
+        .game-wrapper {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* доска */
+        .board-section {
+            background: #fbe9c3;
+            border-radius: 28px;
+            padding: 12px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 20px;
+            box-shadow: inset 0 0 0 2px #ffd966, 0 4px 12px black;
+            background: #f5e7d3;
+            cursor: pointer;
+        }
+
+        /* панель управления справа */
+        .info-panel {
+            background: #1e2a2e;
+            border-radius: 32px;
+            width: 320px;
+            padding: 20px 16px;
+            color: #f0f0e0;
+            box-shadow: 0 12px 28px black;
+            backdrop-filter: blur(2px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .players-status {
+            background: #2e3b3e;
+            border-radius: 24px;
+            padding: 12px;
+        }
+
+        .player-card {
+            background: #3a4a4f;
+            margin: 10px 0;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .player-card.active-turn {
+            border: 2px solid gold;
+            background: #4e6b5e;
+            box-shadow: 0 0 12px gold;
+        }
+
+        .token-icon {
+            font-size: 32px;
+            width: 48px;
+            text-align: center;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .player-money {
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ffd966;
+        }
+
+        .dice-area {
+            background: #2e3b3e;
+            border-radius: 28px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .dice {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 15px 0;
+        }
+
+        .die {
+            background: white;
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            font-weight: bold;
+            box-shadow: inset 0 -2px 0 #aaa, 0 8px 12px black;
+            color: #2c2c2c;
+        }
+
+        button {
+            background: #f4b942;
+            border: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 12px 24px;
+            border-radius: 48px;
+            cursor: pointer;
+            transition: 0.1s linear;
+            font-family: inherit;
+            box-shadow: 0 4px 0 #8b5a2b;
+            color: #1e2a2e;
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #8b5a2b;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .event-log {
+            background: #1f2a24;
+            border-radius: 24px;
+            padding: 12px;
+            height: 180px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+
+        .event-log p {
+            margin: 6px 0;
+            border-left: 3px solid #f4b942;
+            padding-left: 10px;
+        }
+
+        .property-action {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .action-btn {
+            background: #3e6b47;
+            box-shadow: 0 2px 0 #1f3b2c;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+        }
+
+        h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.3rem;
+            text-align: center;
+            color: #ffd966;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="game-wrapper">
+        <!-- Игровая доска (canvas) -->
+        <div class="board-section">
+            <canvas id="monopolyCanvas" width="800" height="800"></canvas>
+        </div>
+
+        <!-- Панель информации и управления -->
+        <div class="info-panel">
+            <div class="players-status" id="playersPanel"></div>
+
+            <div class="dice-area">
+                <h3>🎲 БРОСОК 🎲</h3>
+                <div class="dice" id="diceContainer">
+                    <div class="die">⚀</div>
+                    <div class="die">⚀</div>
+                </div>
+                <button id="rollBtn">Кинуть кубики</button>
+                <div class="property-action" id="buySellPanel" style="display: none;">
+                    <button id="buyBtn" class="action-btn">🏠 КУПИТЬ</button>
+                    <button id="skipBtn" class="action-btn">➡️ ПРОПУСТИТЬ</button>
+                </div>
+                <button id="endTurnBtn" style="margin-top: 12px; background:#5a626e;" disabled>Закончить ход</button>
+            </div>
+
+            <div class="event-log" id="eventLog">
+                <p>🎲 Добро пожаловать в Монополию!</p>
+                <p>👑 Выберите игрока (вы - Игрок 1), боты играют автоматически.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    // 1. ДАННЫЕ ИГРЫ (основано на monopoly.py и классической монополии)
+    // --------------------------------------------------------------
+    const PROPERTIES = [
+        // 40 клеток: индекс 0 = GO, 1..39
+        { name: "СТАРТ", colour: "Go", price: 0, rent: 0, group: "start" },
+        { name: "БАЛТИЙСКАЯ АВЕНЮ", colour: "Brown", price: 60, rent: 4, group: "brown" },
+        { name: "ОБЩЕСТВЕННАЯ КАЗНА", colour: "Community Chest", price: 0, rent: 0, group: "chest" },
+        { name: "ВОСТОЧНАЯ АВЕНЮ", colour: "Brown", price: 60, rent: 8, group: "brown" },
+        { name: "ПОДОХОДНЫЙ НАЛОГ", colour: "Tax", price: 200, rent: 0, group: "tax" },
+        { name: "ЧИТАГО-ТРАНЗИТ", colour: "Station", price: 200, rent: 25, group: "station" },
+        { name: "ВЕРМОНТСКАЯ АВЕНЮ", colour: "LightBlue", price: 100, rent: 6, group: "lightblue" },
+        { name: "ШАНС", colour: "Chance", price: 0, rent: 0, group: "chance" },
+        { name: "КОННЕКТИКУТ-АВЕНЮ", colour: "LightBlue", price: 100, rent: 6, group: "lightblue" },
+        { name: "ТЮРЬМА (посещение)", colour: "Jail", price: 0, rent: 0, group: "jail" },
+        { name: "СЕНТ-ДЖЕЙМС-ПЛЕЙС", colour: "Pink", price: 140, rent: 10, group: "pink" },
+        { name: "ЭЛЕКТРОКОМПАНИЯ", colour: "Utility", price: 150, rent: 0, group: "utility" },
+        { name: "ВИРДЖИНИЯ-АВЕНЮ", colour: "Pink", price: 140, rent: 10, group: "pink" },
+        { name: "ШАНС", colour: "Chance", price: 0, rent: 0, group: "chance" },
+        { name: "ПЕНСИЛЬВАНСКАЯ АВЕНЮ", colour: "Orange", price: 180, rent: 14, group: "orange" },
+        { name: "СВОБОДНАЯ СТОЯНКА", colour: "Free Parking", price: 0, rent: 0, group: "free" },
+        { name: "АВЕНЮ НОРФОЛК", colour: "Orange", price: 180, rent: 14, group: "orange" },
+        { name: "ОБЩЕСТВЕННАЯ КАЗНА", colour: "Community Chest", price: 0, rent: 0, group: "chest" },
+        { name: "АВЕНЮ КЕНТУККИ", colour: "Red", price: 220, rent: 18, group: "red" },
+        { name: "ШАНС", colour: "Chance", price: 0, rent: 0, group: "chance" },
+        { name: "ИНДИАНА-АВЕНЮ", colour: "Red", price: 220, rent: 18, group: "red" },
+        { name: "ЖЕЛЕЗНАЯ ДОРОГА", colour: "Station", price: 200, rent: 25, group: "station" },
+        { name: "АВЕНЮ ИЛЛИНОЙС", colour: "Yellow", price: 260, rent: 22, group: "yellow" },
+        { name: "ШАНС", colour: "Chance", price: 0, rent: 0, group: "chance" },
+        { name: "АВЕНЮ ИНДИАНА", colour: "Yellow", price: 260, rent: 22, group: "yellow" },
+        { name: "ВОДОПРОВОД", colour: "Utility", price: 150, rent: 0, group: "utility" },
+        { name: "АВЕНЮ АТЛАНТИК", colour: "Green", price: 300, rent: 26, group: "green" },
+        { name: "АВЕНЮ ВЕНТНОР", colour: "Green", price: 300, rent: 26, group: "green" },
+        { name: "ОБЩЕСТВЕННАЯ КАЗНА", colour: "Community Chest", price: 0, rent: 0, group: "chest" },
+        { name: "АВЕНЮ МАРВИН-ГАРДЕНС", colour: "Green", price: 320, rent: 28, group: "green" },
+        { name: "ИДИТЕ В ТЮРЬМУ", colour: "Go to Jail", price: 0, rent: 0, group: "gotojail" },
+        { name: "АВЕНЮ ПАСИФИК", colour: "DarkBlue", price: 400, rent: 50, group: "darkblue" },
+        { name: "АВЕНЮ НОРТ-КАРОЛИНА", colour: "DarkBlue", price: 400, rent: 50, group: "darkblue" },
+        { name: "ОБЩЕСТВЕННАЯ КАЗНА", colour: "Community Chest", price: 0, rent: 0, group: "chest" },
+        { name: "АВЕНЮ ПЕНСИЛЬВАНИЯ", colour: "DarkBlue", price: 420, rent: 55, group: "darkblue" },
+        { name: "ШАНС", colour: "Chance", price: 0, rent: 0, group: "chance" },
+        { name: "ЖЕЛЕЗНАЯ ДОРОГА (SHORT)", colour: "Station", price: 200, rent: 25, group: "station" },
+        { name: "НАЛОГ НА РОСКОШЬ", colour: "Tax", price: 100, rent: 0, group: "tax" },
+        { name: "АВЕНЮ ПАРК-ПЛЕЙС", colour: "DarkBlue", price: 350, rent: 35, group: "darkblue" }
+    ];
+    // дополним до 40, последний индекс 39 (всего 40)
+    while(PROPERTIES.length < 40) PROPERTIES.push({ name: "ЗАПАСНАЯ", colour: "None", price:0, rent:0, group:"none" });
+    // 40 клеток
+
+    // Карточки шанса и общественная казна (упрощённые, но атмосферные)
+    const CHANCE_CARDS = [
+        { text: "Банк выплачивает вам дивиденды: +150$", money: 150, moveTo: null },
+        { text: "Идите на СТАРТ, получите 200$", money: 200, moveTo: 0 },
+        { text: "Штраф за превышение скорости: -50$", money: -50, moveTo: null },
+        { text: "Продвиньтесь до Иллинойс-Авеню (24)", money: 0, moveTo: 22 },
+        { text: "Ваш залог возвращён: +100$", money: 100, moveTo: null },
+        { text: "Заплатите за ремонт улиц: -40$", money: -40, moveTo: null }
+    ];
+    const CHEST_CARDS = [
+        { text: "Ошибка банка в вашу пользу: +200$", money: 200, moveTo: null },
+        { text: "Лечение: -100$", money: -100, moveTo: null },
+        { text: "Вы выиграли конкурс красоты: +50$", money: 50, moveTo: null },
+        { text: "Идите вперёд до СТАРТА (+200$)", money: 200, moveTo: 0 },
+        { text: "Налоговая скидка: +75$", money: 75, moveTo: null }
+    ];
+
+    // Перемешиваем карточки
+    function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
+    shuffle(CHANCE_CARDS);
+    shuffle(CHEST_CARDS);
+    let chanceIndex = 0, chestIndex = 0;
+
+    // Игроки
+    const players = [
+        { id: 0, name: "🧑‍💼 Вы", money: 1500, position: 0, properties: [], type: "human", token: "👑", color: "#FFD966" },
+        { id: 1, name: "🤖 Компьютер A", money: 1500, position: 0, properties: [], type: "bot", token: "🤖", color: "#6aa9ff" },
+        { id: 2, name: "🤖 Компьютер B", money: 1500, position: 0, properties: [], type: "bot", token: "⚙️", color: "#ff8c66" },
+        { id: 3, name: "🤖 Компьютер C", money: 1500, position: 0, properties: [], type: "bot", token: "📀", color: "#77dd77" }
+    ];
+    let currentPlayerIdx = 0;
+    let waitingForBuy = false;
+    let currentPropertyIndex = -1;
+    let doubleRollCount = 0;
+    let rollValue = 0;
+    let gameActive = true;
+
+    // вспомогательные функции
+    function addLog(msg) {
+        const logDiv = document.getElementById("eventLog");
+        const p = document.createElement("p");
+        p.innerHTML = msg;
+        logDiv.appendChild(p);
+        p.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        if (logDiv.children.length > 15) logDiv.removeChild(logDiv.children[0]);
+    }
+
+    function updateMoneyDisplay() {
+        const panel = document.getElementById("playersPanel");
+        panel.innerHTML = "<h3>🏆 Участники 🏆</h3>";
+        players.forEach((p, idx) => {
+            const activeClass = (currentPlayerIdx === idx && gameActive && !waitingForBuy) ? "active-turn" : "";
+            const div = document.createElement("div");
+            div.className = `player-card ${activeClass}`;
+            div.innerHTML = `
+                <div class="token-icon">${p.token}</div>
+                <div class="player-info">
+                    <div class="player-name">${p.name}</div>
+                    <div class="player-money">💰 $${p.money}</div>
+                    <div style="font-size:12px">🏠 ${p.properties.length} шт.</div>
+                </div>
+            `;
+            panel.appendChild(div);
+        });
+    }
+
+    // Отрисовка доски canvas (упрощённая)
+    const canvas = document.getElementById("monopolyCanvas");
+    const ctx = canvas.getContext("2d");
+    function drawBoard() {
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = "#b57c48";
+        ctx.lineWidth = 3;
+        // Рисуем внешний контур
+        ctx.fillStyle = "#e5c8a3";
+        ctx.fillRect(0, 0, w, h);
+        const stepX = w / 11, stepY = h / 11;
+        // 40 клеток по периметру (упрощённая визуализация)
+        for (let i = 0; i < 40; i++) {
+            let x1, y1, x2, y2;
+            if (i < 10) { // верхняя сторона
+                x1 = 10 + i * (w - 20) / 10;
+                y1 = 10;
+                x2 = x1 + (w - 20) / 10;
+                y2 = 70;
+            } else if (i < 20) { // правая сторона
+                let j = i - 10;
+                x1 = w - 70;
+                y1 = 10 + j * (h - 20) / 10;
+                x2 = w - 10;
+                y2 = y1 + (h - 20) / 10;
+            } else if (i < 30) { // нижняя
+                let j = i - 20;
+                x1 = w - 10 - j * (w - 20) / 10;
+                y1 = h - 70;
+                x2 = x1 + (w - 20) / 10;
+                y2 = h - 10;
+            } else { // левая
+                let j = i - 30;
+                x1 = 10;
+                y1 = h - 10 - j * (h - 20) / 10;
+                x2 = 70;
+                y2 = y1 + (h - 20) / 10;
+            }
+            ctx.fillStyle = "#f5e0b0";
+            ctx.fillRect(x1, y1, x2-x1, y2-y1);
+            ctx.strokeRect(x1, y1, x2-x1, y2-y1);
+            ctx.fillStyle = "#6b3e1c";
+            ctx.font = "bold 10px 'Segoe UI'";
+            let shortName = PROPERTIES[i].name.substring(0, 6);
+            ctx.fillText(shortName, x1+5, y1+15);
+        }
+        // отрисовка фишек игроков
+        players.forEach(p => {
+            const pos = p.position;
+            if (pos >= 40) return;
+            let x, y;
+            if (pos < 10) { x = 20 + pos * (canvas.width-40)/10; y = 35; }
+            else if (pos < 20) { let j = pos-10; x = canvas.width-45; y = 30 + j * (canvas.height-60)/10; }
+            else if (pos < 30) { let j = pos-20; x = canvas.width-45 - j * (canvas.width-60)/10; y = canvas.height-45; }
+            else { let j = pos-30; x = 35; y = canvas.height-45 - j * (canvas.height-60)/10; }
+            ctx.beginPath();
+            ctx.arc(x, y, 14, 0, 2*Math.PI);
+            ctx.fillStyle = p.color;
+            ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillText(p.token, x-8, y+8);
+        });
+    }
+
+    // обновление интерфейса (кнопки, логи)
+    function refreshUI() {
+        updateMoneyDisplay();
+        drawBoard();
+        const rollBtn = document.getElementById("rollBtn");
+        const endBtn = document.getElementById("endTurnBtn");
+        if (!gameActive) {
+            rollBtn.disabled = true;
+            endBtn.disabled = true;
+            return;
+        }
+        const current = players[currentPlayerIdx];
+        if (current.type === "human" && !waitingForBuy && gameActive) {
+            rollBtn.disabled = false;
+            endBtn.disabled = true; // ход закончится после действия
+        } else if (current.type === "bot" && !waitingForBuy && gameActive) {
+            rollBtn.disabled = true;
+            endBtn.disabled = true;
+            setTimeout(() => botTurn(), 800);
+        } else {
+            rollBtn.disabled = true;
+            endBtn.disabled = true;
+        }
+    }
+
+    // покупка недвижимости
+    function buyProperty() {
+        if (!waitingForBuy) return;
+        const prop = PROPERTIES[currentPropertyIndex];
+        const player = players[currentPlayerIdx];
+        if (player.money >= prop.price && prop.owner === undefined) {
+            player.money -= prop.price;
+            prop.owner = player.id;
+            player.properties.push(prop);
+            addLog(`🏘️ ${player.name} купил ${prop.name} за $${prop.price}`);
+            updateMoneyDisplay();
+            drawBoard();
+        } else {
+            addLog(`❌ Недостаточно средств для покупки ${prop.name}`);
+        }
+        waitingForBuy = false;
+        document.getElementById("buySellPanel").style.display = "none";
+        afterMoveAction();
+    }
+
+    function skipBuy() {
+        waitingForBuy = false;
+        document.getElementById("buySellPanel").style.display = "none";
+        addLog(`🚫 ${players[currentPlayerIdx].name} отказался покупать.`);
+        afterMoveAction();
+    }
+
+    // оплата аренды / налоги
+    function handleLandOnProperty(prop, player) {
+        if (prop.group === "start") return;
+        if (prop.group === "Tax") {
+            let tax = prop.price;
+            player.money -= tax;
+            addLog(`💸 Налог ${prop.name}: ${player.name} заплатил $${tax}`);
+            updateMoneyDisplay();
+            return;
+        }
+        if (prop.group === "chance") {
+            drawCard(CHANCE_CARDS, player, "🎲 ШАНС");
+            return;
+        }
+        if (prop.group === "chest") {
+            drawCard(CHEST_CARDS, player, "📦 ОБЩЕСТВЕННАЯ КАЗНА");
+            return;
+        }
+        if (prop.group === "gotojail") {
+            player.position = 9; // тюрьма (индекс 9)
+            addLog(`🚔 ${player.name} отправляется в тюрьму!`);
+            drawBoard();
+            endTurnAfterAction();
+            return;
+        }
+        if (prop.group === "station" || prop.group === "utility" || prop.colour !== "None") {
+            if (prop.owner !== undefined && prop.owner !== player.id) {
+                const owner = players.find(p => p.id === prop.owner);
+                if (owner) {
+                    let rent = prop.rent;
+                    if (prop.group === "utility") {
+                        let ownedUtils = owner.properties.filter(p => p.group === "utility").length;
+                        rent = (ownedUtils === 2) ? rollValue * 10 : rollValue * 4;
+                    }
+                    if (prop.group === "station") {
+                        let stations = owner.properties.filter(p => p.group === "station").length;
+                        rent = [25, 50, 100, 200][stations-1] || 25;
+                    }
+                    player.money -= rent;
+                    owner.money += rent;
+                    addLog(`🏠 Аренда: ${player.name} заплатил ${owner.name} $${rent} за ${prop.name}`);
+                    updateMoneyDisplay();
+                }
+            } else if (prop.owner === undefined && prop.price > 0 && player.money >= prop.price && player.type !== "bot" && !waitingForBuy) {
+                // предложение покупки только для человека
+                waitingForBuy = true;
+                currentPropertyIndex = PROPERTIES.indexOf(prop);
+                document.getElementById("buySellPanel").style.display = "flex";
+                addLog(`💰 ${player.name}, хотите купить ${prop.name} за $${prop.price}?`);
+                refreshUI();
+                return; // ждём нажатия
+            } else if (prop.owner === undefined && player.type === "bot" && player.money >= prop.price) {
+                // бот покупает с вероятностью 70%
+                if (Math.random() < 0.7) {
+                    player.money -= prop.price;
+                    prop.owner = player.id;
+                    player.properties.push(prop);
+                    addLog(`🤖 ${player.name} купил ${prop.name} за $${prop.price}`);
+                    updateMoneyDisplay();
+                }
+            }
+        }
+        afterMoveAction();
+    }
+
+    function drawCard(deck, player, title) {
+        let card = deck[Math.floor(Math.random() * deck.length)];
+        addLog(`${title}: ${card.text}`);
+        if (card.money !== 0) {
+            player.money += card.money;
+            addLog(`💰 ${player.name} ${card.money>0 ? "получил" : "потерял"} ${Math.abs(card.money)}$`);
+            updateMoneyDisplay();
+        }
+        if (card.moveTo !== null && card.moveTo !== undefined) {
+            player.position = card.moveTo;
+            addLog(`🚀 ${player.name} перемещается на ${PROPERTIES[card.moveTo].name}`);
+            drawBoard();
+        }
+        afterMoveAction();
+    }
+
+    function afterMoveAction() {
+        if (!gameActive) return;
+        if (players[currentPlayerIdx].money <= 0) {
+            bankrupt();
+            return;
+        }
+        endTurnAfterAction();
+    }
+
+    function endTurnAfterAction() {
+        if (waitingForBuy) return;
+        nextTurn();
+    }
+
+    function nextTurn() {
+        currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
+        waitingForBuy = false;
+        document.getElementById("buySellPanel").style.display = "none";
+        refreshUI();
+        addLog(`✨ Ход переходит к ${players[currentPlayerIdx].name}`);
+        if (!gameActive) return;
+        if (players[currentPlayerIdx].type === "bot") {
+            setTimeout(() => botTurn(), 500);
+        }
+    }
+
+    function bankrupt() {
+        let player = players[currentPlayerIdx];
+        addLog(`💀 ${player.name} обанкротился! Исключён из игры.`);
+        players.splice(currentPlayerIdx, 1);
+        if (players.length === 1) {
+            gameActive = false;
+            addLog(`🏆 ИГРА ОКОНЧЕНА! Победитель: ${players[0].name} 🏆`);
+            document.getElementById("rollBtn").disabled = true;
+            document.getElementById("endTurnBtn").disabled = true;
+            return;
+        }
+        if (currentPlayerIdx >= players.length) currentPlayerIdx = 0;
+        refreshUI();
+        if (players[currentPlayerIdx].type === "bot") setTimeout(() => botTurn(), 500);
+    }
+
+    // ход игрока / бота
+    async function performMove() {
+        if (!gameActive) return;
+        const player = players[currentPlayerIdx];
+        const dice1 = Math.floor(Math.random() * 6) + 1;
+        const dice2 = Math.floor(Math.random() * 6) + 1;
+        rollValue = dice1 + dice2;
+        const dieEls = document.querySelectorAll(".die");
+        const diceMap = {1:"⚀",2:"⚁",3:"⚂",4:"⚃",5:"⚄",6:"⚅"};
+        dieEls[0].innerText = diceMap[dice1];
+        dieEls[1].innerText = diceMap[dice2];
+        addLog(`🎲 ${player.name} выбросил ${dice1} и ${dice2} (сумма ${rollValue})`);
+        let newPos = player.position + rollValue;
+        if (newPos >= 40) {
+            newPos -= 40;
+            player.money += 200;
+            addLog(`💰 Проход СТАРТА: ${player.name} получает 200$`);
+            updateMoneyDisplay();
+        }
+        player.position = newPos;
+        drawBoard();
+        const landedProp = PROPERTIES[player.position];
+        addLog(`📍 ${player.name} на клетке: ${landedProp.name}`);
+        // обработка события клетки
+        await new Promise(resolve => {
+            const callback = () => {
+                if (waitingForBuy) return; // ждём ручного решения
+                resolve();
+            };
+            if (landedProp.group === "chance" || landedProp.group === "chest" || landedProp.group === "Tax" || landedProp.group === "gotojail" || (landedProp.owner !== undefined && landedProp.owner !== player.id) || (landedProp.owner === undefined && landedProp.price>0)) {
+                handleLandOnProperty(landedProp, player);
+                setTimeout(() => { if(!waitingForBuy) resolve(); else setTimeout(()=>resolve(), 300); }, 100);
+            } else {
+                resolve();
+            }
+        });
+        if (!gameActive) return;
+        if (players[currentPlayerIdx] && players[currentPlayerIdx].money <= 0) {
+            bankrupt();
+            return;
+        }
+        // двойной бросок? если выпало дубль и не в тюрьме
+        if (dice1 === dice2 && !waitingForBuy) {
+            addLog(`🎲 ДУБЛЬ! ${player.name} ходит ещё раз.`);
+            setTimeout(() => performMove(), 1200);
+        } else {
+            if (!waitingForBuy) nextTurn();
+        }
+    }
+
+    function botTurn() {
+        if (!gameActive) return;
+        if (players[currentPlayerIdx].type === "bot" && !waitingForBuy) {
+            performMove();
+        } else {
+            refreshUI();
+        }
+    }
+
+    function humanRoll() {
+        if (!gameActive) return;
+        const p = players[currentPlayerIdx];
+        if (p.type !== "human" || waitingForBuy) return;
+        performMove();
+    }
+
+    // инициализация свойств
+    for (let i = 0; i < PROPERTIES.length; i++) {
+        PROPERTIES[i].owner = undefined;
+    }
+
+    // навешиваем кнопки
+    document.getElementById("rollBtn").addEventListener("click", humanRoll);
+    document.getElementById("endTurnBtn").addEventListener("click", () => { if(!waitingForBuy) nextTurn(); });
+    document.getElementById("buyBtn").addEventListener("click", buyProperty);
+    document.getElementById("skipBtn").addEventListener("click", skipBuy);
+
+    // запуск игры
+    gameActive = true;
+    waitingForBuy = false;
+    refreshUI();
+    addLog("🎲 Игра началась! Первый ход у Игрока 1 (Вы). Кидайте кубики.");
+    drawBoard();
+    if(players[0].type !== "human") nextTurn();
+</script>
+</body>
+</html>
