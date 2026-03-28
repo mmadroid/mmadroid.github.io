@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TON Wallet — Telegram Mini App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- TON Connect UI -->
+    <script type="module">
+        import { TonConnectUI } from 'https://unpkg.com/@tonconnect/ui@latest/dist/index.js';
+        window.TonConnectUI = TonConnectUI;
+    </script>
+    <!-- TON SDK (для работы с блокчейном) -->
+    <script src="https://unpkg.com/ton@latest/dist/ton.js"></script>
+    <!-- Ваш основной скрипт -->
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>TON Wallet</h1>
+                <div class="network-switch">
+                    <button id="mainnet-btn" class="active">Mainnet</button>
+                    <button id="testnet-btn">Testnet</button>
+                </div>
+            </div>
+
+            <!-- Состояние: не подключён -->
+            <div id="wallet-connect" class="card">
+                <button id="connect-wallet-btn" class="primary-btn">Connect Wallet</button>
+                <p class="hint">Choose your TON wallet (Tonkeeper, Wallet, etc.)</p>
+            </div>
+
+            <!-- Состояние: подключён -->
+            <div id="wallet-info" style="display: none;">
+                <div class="card">
+                    <div class="balance-section">
+                        <span class="label">Balance</span>
+                        <div class="balance" id="balance">0.00 TON</div>
+                    </div>
+                    <div class="address-section">
+                        <span class="label">Address</span>
+                        <div class="address" id="address">-</div>
+                        <button id="copy-address-btn" class="small-btn">Copy</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Jettons</h3>
+                    <div id="jettons-list" class="list">
+                        <div class="empty">No jettons</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>NFTs</h3>
+                    <div id="nfts-list" class="list">
+                        <div class="empty">No NFTs</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Send TON</h3>
+                    <div class="send-form">
+                        <input type="text" id="send-to" placeholder="Recipient address" class="input">
+                        <input type="text" id="send-amount" placeholder="Amount in TON" class="input">
+                        <button id="send-ton-btn" class="primary-btn">Send TON</button>
+                        <div id="send-status" class="status"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Recent Transactions</h3>
+                    <div id="transactions-list" class="list">
+                        <div class="empty">No transactions yet</div>
+                    </div>
+                </div>
+
+                <button id="disconnect-wallet-btn" class="secondary-btn">Disconnect</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
