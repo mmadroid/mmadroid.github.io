@@ -1,0 +1,267 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #000000);
+    transition: background-color 0.2s, color 0.2s;
+    padding: 16px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.network-switch {
+    display: flex;
+    gap: 8px;
+}
+
+.network-switch button {
+    background: var(--tg-theme-secondary-bg-color, #e6e6e6);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--tg-theme-text-color, #000);
+}
+
+.network-switch button.active {
+    background: var(--tg-theme-button-color, #2481cc);
+    color: var(--tg-theme-button-text-color, #fff);
+}
+
+.card {
+    background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: background-color 0.2s;
+}
+
+.balance-section, .address-section {
+    margin-bottom: 16px;
+}
+
+.label {
+    font-size: 0.85rem;
+    opacity: 0.7;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.balance {
+    font-size: 2rem;
+    font-weight: bold;
+    word-break: break-all;
+}
+
+.address {
+    font-family: monospace;
+    font-size: 0.9rem;
+    word-break: break-all;
+    background: var(--tg-theme-bg-color, #fff);
+    padding: 8px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.small-btn {
+    background: var(--tg-theme-button-color, #2481cc);
+    color: var(--tg-theme-button-text-color, #fff);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.primary-btn {
+    background: var(--tg-theme-button-color, #2481cc);
+    color: var(--tg-theme-button-text-color, #fff);
+    border: none;
+    padding: 12px 20px;
+    border-radius: 40px;
+    font-size: 1rem;
+    font-weight: 500;
+    width: 100%;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.secondary-btn {
+    background: transparent;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    color: var(--tg-theme-text-color, #000);
+    padding: 12px 20px;
+    border-radius: 40px;
+    font-size: 1rem;
+    width: 100%;
+    cursor: pointer;
+}
+
+.input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    background-color: var(--tg-theme-bg-color, #fff);
+    color: var(--tg-theme-text-color, #000);
+    font-size: 1rem;
+    margin-bottom: 12px;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--tg-theme-button-color, #2481cc);
+}
+
+.list {
+    margin-top: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.list-item {
+    padding: 12px;
+    border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
+    font-size: 0.9rem;
+}
+
+.empty {
+    text-align: center;
+    opacity: 0.6;
+    padding: 16px;
+}
+
+.status {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.hint {
+    font-size: 0.8rem;
+    text-align: center;
+    margin-top: 12px;
+    opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 12px;
+    }
+    .balance {
+        font-size: 1.5rem;
+    }
+    .card {
+        padding: 16px;
+    }
+}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>TON Wallet — Telegram Mini App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- TON Connect UI -->
+    <script type="module">
+        import { TonConnectUI } from 'https://unpkg.com/@tonconnect/ui@latest/dist/index.js';
+        window.TonConnectUI = TonConnectUI;
+    </script>
+    <!-- TON SDK (для работы с блокчейном) -->
+    <script src="https://unpkg.com/ton@latest/dist/ton.js"></script>
+    <!-- Ваш основной скрипт -->
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>TON Wallet</h1>
+                <div class="network-switch">
+                    <button id="mainnet-btn" class="active">Mainnet</button>
+                    <button id="testnet-btn">Testnet</button>
+                </div>
+            </div>
+
+            <!-- Состояние: не подключён -->
+            <div id="wallet-connect" class="card">
+                <button id="connect-wallet-btn" class="primary-btn">Connect Wallet</button>
+                <p class="hint">Choose your TON wallet (Tonkeeper, Wallet, etc.)</p>
+            </div>
+
+            <!-- Состояние: подключён -->
+            <div id="wallet-info" style="display: none;">
+                <div class="card">
+                    <div class="balance-section">
+                        <span class="label">Balance</span>
+                        <div class="balance" id="balance">0.00 TON</div>
+                    </div>
+                    <div class="address-section">
+                        <span class="label">Address</span>
+                        <div class="address" id="address">-</div>
+                        <button id="copy-address-btn" class="small-btn">Copy</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Jettons</h3>
+                    <div id="jettons-list" class="list">
+                        <div class="empty">No jettons</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>NFTs</h3>
+                    <div id="nfts-list" class="list">
+                        <div class="empty">No NFTs</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Send TON</h3>
+                    <div class="send-form">
+                        <input type="text" id="send-to" placeholder="Recipient address" class="input">
+                        <input type="text" id="send-amount" placeholder="Amount in TON" class="input">
+                        <button id="send-ton-btn" class="primary-btn">Send TON</button>
+                        <div id="send-status" class="status"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Recent Transactions</h3>
+                    <div id="transactions-list" class="list">
+                        <div class="empty">No transactions yet</div>
+                    </div>
+                </div>
+
+                <button id="disconnect-wallet-btn" class="secondary-btn">Disconnect</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
